@@ -559,7 +559,7 @@
         actionDiv.style.justifyContent = 'center';
         actionDiv.appendChild(editBtn);
         actionDiv.appendChild(deleteBtn);
-        actionCell.appendChild(actionDiv); // ✅ Perbaikan: bukan actionCell.appendChild(actionCell)
+        actionCell.appendChild(actionDiv); // ✅ PERBAIKAN: bukan actionCell.appendChild(actionCell)
       });
 
       renderChart();
@@ -593,8 +593,7 @@
     };
 
     function getVal(id) {
-      const el = document.getElementById(id);
-      return el ? el.value.trim() : '';
+      return document.getElementById(id)?.value?.trim() || '';
     }
 
     function setVal(id, val) {
