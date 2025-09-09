@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Karyawan - Offline</title>
+  <title>Admin Karyawan - Supabase</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -100,7 +100,7 @@
       background-color: #f7f7f7;
     }
     .dokumen-preview {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23999' d='M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z'/%3E%3C/svg%3E");
+      background-image: url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23999' d='M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z'/%3E%3C/svg%3E");
     }
     table {
       width: 100%;
@@ -159,13 +159,19 @@
     .toast.show {
       opacity: 1;
     }
+    .sync-status {
+      font-size: 0.8rem;
+      color: #666;
+      text-align: right;
+      margin-top: -10px;
+    }
   </style>
 </head>
 <body>
   <!-- Layar Login -->
   <div id="loginScreen" class="login-form">
     <h2><i class="fas fa-user-shield"></i> Login Admin</h2>
-    <p>Masuk ke sistem (Offline)</p>
+    <p>Masuk ke sistem (Supabase + Offline)</p>
     <input type="text" id="username" placeholder="Username" value="admin">
     <input type="password" id="password" placeholder="Password" value="password123">
     <button class="btn-primary btn-block" onclick="login()">
@@ -285,6 +291,7 @@
           <i class="fas fa-file-excel"></i> Export Excel
         </button>
       </div>
+      <p class="sync-status" id="syncStatus">🔄 Backup otomatis aktif</p>
     </div>
 
     <!-- Tabel Data -->
@@ -324,6 +331,18 @@
   <input type="hidden" id="dokumen">
 
   <script>
+    // ========= 🔑 GANTI INI DENGAN PROJECT ANDA =========
+    const SUPABASE_URL = 'https://etzifvagqbnkdzbebqqt.supabase.co'; // Ganti!
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0emlmdmFncWJua2R6YmVicXF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczMDQ0MjIsImV4cCI6MjA3Mjg4MDQyMn0.lzmlnTNzXTDI97TP90ZB7QVmmE8cazrAagZUhPfUSM4'; // Ganti!
+    const SUPABASE_TABLE = 'karyawan';
+
+    const SUPABASE_HEADERS = {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json'
+    };
+    // ================================================
+
     // Username & password admin
     const ADMIN_USER = "admin";
     const ADMIN_PASS = "password123";
@@ -332,7 +351,8 @@
     window.onload = function() {
       if (localStorage.getItem('adminLoggedIn') === 'true') {
         tampilkanDashboard();
-        muatData();
+        muatData(); // Muat dari localStorage dulu
+        sinkronkanDariSupabase(); // Coba ambil dari cloud
       }
     };
 
@@ -360,10 +380,79 @@
       location.reload();
     }
 
-    // Simpan data ke localStorage
+    // Simpan data ke localStorage DAN ke Supabase
     function simpanData(data) {
       localStorage.setItem('karyawanData', JSON.stringify(data));
-      showToast("Data disimpan!");
+      backupKeSupabase(data);
+    }
+
+    // Backup otomatis ke Supabase
+    async function backupKeSupabase(data) {
+      const status = document.getElementById('syncStatus');
+      if (!navigator.onLine) {
+        status.textContent = "⚠️ Offline: Backup ditunda";
+        return;
+      }
+
+      try {
+        // Hapus semua data lalu isi ulang
+        await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?order=id`, {
+          method: 'DELETE',
+          headers: SUPABASE_HEADERS
+        });
+
+        if (data.length === 0) {
+          status.textContent = "✅ Backup: Data kosong";
+          return;
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+          method: 'POST',
+          headers: SUPABASE_HEADERS,
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error(await response.text());
+        status.textContent = "✅ Backup berhasil ke Supabase";
+      } catch (err) {
+        console.error("❌ Gagal backup ke Supabase:", err.message);
+        status.textContent = "❌ Gagal sinkron ke cloud";
+        showToast("Gagal sinkron ke Supabase");
+      }
+    }
+
+    // Muat data dari Supabase (opsional saat login)
+    async function sinkronkanDariSupabase() {
+      const status = document.getElementById('syncStatus');
+      if (!navigator.onLine) {
+        status.textContent = "⚠️ Offline: Gunakan data lokal";
+        return;
+      }
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?order=id`, {
+          headers: SUPABASE_HEADERS
+        });
+
+        if (!response.ok) throw new Error("Gagal ambil data");
+
+        const remoteData = await response.json();
+        if (remoteData.length > 0) {
+          if (confirm("Data ditemukan di cloud. Muat dari Supabase?")) {
+            localStorage.setItem('karyawanData', JSON.stringify(remoteData));
+            muatData();
+            status.textContent = "☁️ Data dimuat dari cloud";
+            showToast("Data dimuat dari Supabase");
+          } else {
+            status.textContent = "✅ Gunakan data lokal";
+          }
+        } else {
+          status.textContent = "✅ Tidak ada data di cloud";
+        }
+      } catch (err) {
+        status.textContent = "❌ Tidak bisa akses cloud";
+        console.warn("Tidak bisa ambil dari Supabase:", err.message);
+      }
     }
 
     // Muat data dari localStorage
@@ -470,9 +559,8 @@
         actionDiv.style.justifyContent = 'center';
         actionDiv.appendChild(editBtn);
         actionDiv.appendChild(deleteBtn);
-        actionCell.appendChild(actionDiv);
+        actionCell.appendChild(actionCell);
       });
-
       renderChart();
     }
 
@@ -504,8 +592,7 @@
     };
 
     function getVal(id) {
-      const el = document.getElementById(id);
-      return el ? el.value.trim() : '';
+      return document.getElementById(id)?.value?.trim() || '';
     }
 
     function setVal(id, val) {
