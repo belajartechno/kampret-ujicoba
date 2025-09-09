@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Karyawan - Offline</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --primary: #4CAF50;
+      --secondary: #2196F3;
+      --danger: #f44336;
+      --warning: #FF9800;
+      --dark: #333;
+      --light: #f4f4f4;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--light);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 20px;
+    }
+    .login-form {
+      max-width: 420px;
+      margin: 80px auto;
+      padding: 30px;
+      border-radius: 10px;
+      background: var(--white);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .login-form h2 { color: var(--primary); margin-bottom: 20px; }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    input[type="file"] {
+      padding: 5px 0;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: var(--secondary); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-block { display: block; width: 100%; text-align: center; }
+    .btn-sm { padding: 8px 12px; font-size: 0.9rem; }
+    .text-center { text-align: center; }
+    .mt-10 { margin-top: 10px; }
+    .mt-20 { margin-top: 20px; }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .card {
+      background: var(--white);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h2 { margin-bottom: 15px; color: var(--primary); }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    .photo-preview, .dokumen-preview {
+      width: 100px;
+      height: 100px;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      margin: 10px auto;
+      background-size: cover;
+      background-position: center;
+      background-color: #f7f7f7;
+    }
+    .dokumen-preview {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23999' d='M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z'/%3E%3C/svg%3E");
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: var(--primary);
+      color: white;
+    }
+    tr:hover { background: #f9f9f9; }
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .qrcode-container {
+      display: inline-block;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+    }
+    .search-box {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      outline: none;
+      font-size: 1rem;
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-top: 20px;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 6px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Layar Login -->
+  <div id="loginScreen" class="login-form">
+    <h2><i class="fas fa-user-shield"></i> Login Admin</h2>
+    <p>Masuk ke sistem (Offline)</p>
+    <input type="text" id="username" placeholder="Username" value="admin">
+    <input type="password" id="password" placeholder="Password" value="password123">
+    <button class="btn-primary btn-block" onclick="login()">
+      <i class="fas fa-sign-in-alt"></i> Masuk
+    </button>
+  </div>
+
+  <!-- Aplikasi Utama -->
+  <div id="mainApp" style="display:none;">
+    <header>
+      <h1><i class="fas fa-building"></i> Dashboard Karyawan</h1>
+      <button class="btn-danger" onclick="logout()">Keluar</button>
+    </header>
+
+    <!-- Notifikasi -->
+    <div id="toast" class="toast">Aksi berhasil!</div>
+
+    <!-- Form Tambah/Edit -->
+    <div class="card">
+      <h2 id="formTitle"><i class="fas fa-user-plus"></i> Tambah Karyawan</h2>
+      <input type="hidden" id="editId">
+      
+      <div class="form-group">
+        <label>Nama Lengkap</label>
+        <input type="text" id="nama" placeholder="Nama Lengkap">
+      </div>
+      <div class="form-group">
+        <label>NIK (16 digit)</label>
+        <input type="text" id="nik" placeholder="Nomor Induk Kependudukan" maxlength="16">
+      </div>
+      <div class="form-group">
+        <label>Alamat</label>
+        <select id="alamat">
+          <option value="">Pilih Wilayah</option>
+          <option value="Bandar Lampung">Bandar Lampung</option>
+          <option value="Metro">Metro</option>
+          <option value="Lampung Selatan">Lampung Selatan</option>
+          <option value="Lampung Tengah">Lampung Tengah</option>
+          <option value="Lampung Utara">Lampung Utara</option>
+          <option value="Tulang Bawang">Tulang Bawang</option>
+          <option value="Pesawaran">Pesawaran</option>
+          <option value="Pringsewu">Pringsewu</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Mulai Kerja</label>
+        <input type="date" id="mulai">
+      </div>
+      <div class="form-group">
+        <label>Pendidikan</label>
+        <select id="pendidikan">
+          <option value="">Pilih Pendidikan</option>
+          <option value="SMA/MA/SMK">SMA/MA/SMK</option>
+          <option value="Sarjana">Sarjana</option>
+          <option value="Magister">Magister</option>
+          <option value="Doktor">Doktor</option>
+          <option value="Profesor">Profesor</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Kontrak Kerja</label>
+        <select id="kontrak">
+          <option value="">Pilih Durasi</option>
+          <option value="2">2 Tahun</option>
+          <option value="5">5 Tahun</option>
+          <option value="10">10 Tahun</option>
+          <option value="50">50 Tahun</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Upload Dokumen Kontrak Kerja</label>
+        <input type="file" id="dokumenKontrak" accept=".pdf,.doc,.docx">
+        <div class="dokumen-preview" id="dokumenPreview"></div>
+        <div id="fileName"></div>
+      </div>
+      <div class="form-group">
+        <label>Jabatan</label>
+        <select id="jabatan">
+          <option value="">Pilih Jabatan</option>
+          <option value="Direktur">Direktur</option>
+          <option value="Manajer">Manajer</option>
+          <option value="Teller">Teller</option>
+          <option value="Customer Service">Customer Service</option>
+          <option value="Marketing">Marketing</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="status">
+          <option value="">Pilih Status</option>
+          <option value="Aktif">Aktif</option>
+          <option value="Non Aktif">Non Aktif</option>
+          <option value="Non Job">Non Job</option>
+          <option value="Resign">Resign</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Foto Karyawan</label>
+        <input type="file" id="foto" accept="image/*" onchange="previewPhoto(event)">
+        <div class="photo-preview" id="photoPreview"></div>
+      </div>
+      <button class="btn-primary btn-block mt-10" onclick="simpanKaryawan()">
+        <i class="fas fa-save"></i> Simpan Karyawan
+      </button>
+    </div>
+
+    <!-- Pencarian & Ekspor -->
+    <div class="card">
+      <h2><i class="fas fa-search"></i> Cari & Ekspor Data</h2>
+      <input type="text" id="searchInput" class="search-box" placeholder="Cari berdasarkan nama, NIK, jabatan, dll..." onkeyup="searchKaryawan()">
+      <div style="text-align:right;">
+        <button class="btn-secondary btn-sm" onclick="cetakData()">
+          <i class="fas fa-print"></i> Cetak (PDF)
+        </button>
+        <button class="btn-primary btn-sm" onclick="exportToExcel()">
+          <i class="fas fa-file-excel"></i> Export Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabel Data -->
+    <div class="card">
+      <h2>Data Karyawan</h2>
+      <table id="karyawanTable">
+        <thead>
+          <tr>
+            <th>Foto</th>
+            <th>Nama</th>
+            <th>NIK</th>
+            <th>Alamat</th>
+            <th>Mulai</th>
+            <th>Pendidikan</th>
+            <th>Kontrak</th>
+            <th>Jabatan</th>
+            <th>Status</th>
+            <th>QR</th>
+            <th>Dokumen</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Grafik -->
+    <div class="card">
+      <h2><i class="fas fa-chart-bar"></i> Statistik Karyawan</h2>
+      <div class="chart-container">
+        <canvas id="statsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden input untuk simpan dokumen -->
+  <input type="hidden" id="dokumen">
+
+  <script>
+    // Username & password admin
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "password123";
+
+    // Cek login saat halaman dibuka
+    window.onload = function() {
+      if (localStorage.getItem('adminLoggedIn') === 'true') {
+        tampilkanDashboard();
+        muatData();
+      }
+    };
+
+    // Login
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username === ADMIN_USER && password === ADMIN_PASS) {
+        localStorage.setItem('adminLoggedIn', 'true');
+        tampilkanDashboard();
+        muatData();
+        showToast("Login berhasil!");
+      } else {
+        alert("Username atau password salah!");
+      }
+    }
+
+    function tampilkanDashboard() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+    }
+
+    function logout() {
+      localStorage.removeItem('adminLoggedIn');
+      location.reload();
+    }
+
+    // Simpan data ke localStorage
+    function simpanData(data) {
+      localStorage.setItem('karyawanData', JSON.stringify(data));
+      showToast("Data disimpan!");
+    }
+
+    // Muat data dari localStorage
+    let allData = [];
+    function muatData() {
+      const tbody = document.getElementById('karyawanTable').getElementsByTagName('tbody')[0];
+      tbody.innerHTML = '';
+      allData = JSON.parse(localStorage.getItem('karyawanData')) || [];
+
+      allData.forEach((item, index) => {
+        const row = tbody.insertRow();
+
+        // Kolom 1: Foto
+        const fotoCell = row.insertCell();
+        const img = document.createElement('img');
+        img.src = item.foto || 'https://via.placeholder.com/40';
+        img.width = 40;
+        img.height = 40;
+        img.style.borderRadius = '50%';
+        img.style.objectFit = 'cover';
+        fotoCell.appendChild(img);
+
+        // Kolom 2: Nama
+        row.insertCell().textContent = item.nama;
+
+        // Kolom 3: NIK
+        row.insertCell().textContent = item.nik;
+
+        // Kolom 4: Alamat
+        row.insertCell().textContent = item.alamat || '-';
+
+        // Kolom 5: Mulai Kerja
+        row.insertCell().textContent = formatTanggal(item.mulai);
+
+        // Kolom 6: Pendidikan
+        row.insertCell().textContent = item.pendidikan || '-';
+
+        // Kolom 7: Kontrak
+        row.insertCell().textContent = `${item.kontrak} Tahun`;
+
+        // Kolom 8: Jabatan
+        row.insertCell().textContent = item.jabatan;
+
+        // Kolom 9: Status
+        const statusCell = row.insertCell();
+        const statusSpan = document.createElement('span');
+        statusSpan.textContent = item.status;
+        statusSpan.style.padding = '4px 8px';
+        statusSpan.style.borderRadius = '4px';
+        statusSpan.style.fontSize = '0.8rem';
+        statusSpan.style.color = 'white';
+        statusSpan.style.backgroundColor =
+          item.status === 'Aktif' ? '#4CAF50' :
+          item.status === 'Resign' ? '#f44336' :
+          item.status === 'Non Aktif' ? '#FF9800' : '#999';
+        statusCell.appendChild(statusSpan);
+
+        // Kolom 10: QR Code
+        const qrCell = row.insertCell();
+        const qrDiv = document.createElement('div');
+        qrDiv.className = 'qrcode-container';
+        qrDiv.style.width = '80px';
+        qrDiv.style.height = '80px';
+        qrCell.appendChild(qrDiv);
+        new QRCode(qrDiv, {
+          text: JSON.stringify({
+            nama: item.nama,
+            nik: item.nik,
+            jabatan: item.jabatan,
+            status: item.status
+          }),
+          width: 80,
+          height: 80
+        });
+
+        // Kolom 11: Dokumen
+        const dokumenCell = row.insertCell();
+        if (item.dokumen) {
+          const link = document.createElement('a');
+          link.href = item.dokumen;
+          link.download = `kontrak-${item.nik}.pdf`;
+          link.innerHTML = '📥';
+          link.style.color = '#2196F3';
+          link.style.textDecoration = 'none';
+          dokumenCell.appendChild(link);
+        } else {
+          dokumenCell.textContent = '-';
+        }
+
+        // Kolom 12: Aksi
+        const actionCell = row.insertCell();
+        const editBtn = document.createElement('button');
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+        editBtn.onclick = () => editKaryawan(index);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Hapus';
+        deleteBtn.onclick = () => hapusKaryawan(index);
+
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'action-buttons';
+        actionDiv.style.display = 'flex';
+        actionDiv.style.gap = '8px';
+        actionDiv.style.justifyContent = 'center';
+        actionDiv.appendChild(editBtn);
+        actionDiv.appendChild(deleteBtn);
+        actionCell.appendChild(actionDiv);
+      });
+
+      renderChart();
+    }
+
+    function formatTanggal(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString('id-ID') : '-';
+    }
+
+    function previewPhoto(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('photoPreview').style.backgroundImage = `url(${e.target.result})`;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    document.getElementById('dokumenKontrak').onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('dokumen').value = e.target.result;
+          document.getElementById('fileName').innerHTML = `<small>File: ${file.name}</small>`;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    function getVal(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+
+    function setVal(id, val) {
+      const el = document.getElementById(id);
+      if (el && val !== undefined) el.value = val;
+    }
+
+    function simpanKaryawan() {
+      const nama = getVal('nama');
+      const nik = getVal('nik');
+      const alamat = getVal('alamat');
+      const mulai = getVal('mulai');
+      const pendidikan = getVal('pendidikan');
+      const kontrak = getVal('kontrak');
+      const jabatan = getVal('jabatan');
+      const status = getVal('status');
+      const editId = document.getElementById('editId').value;
+
+      const fotoInput = document.getElementById('foto');
+      const dokumenInput = document.getElementById('dokumenKontrak');
+
+      const data = JSON.parse(localStorage.getItem('karyawanData')) || [];
+
+      let fotoURL = '';
+      let dokumenURL = document.getElementById('dokumen').value;
+
+      if (!nama || !nik || nik.length !== 16 || !status) {
+        alert("Nama, NIK (16 digit), dan Status wajib diisi.");
+        return;
+      }
+
+      if (editId !== "" && editId < data.length) {
+        const currentItem = data[editId];
+        if (!dokumenInput.files[0]) {
+          dokumenURL = currentItem.dokumen;
+        }
+        if (!fotoInput.files[0]) {
+          fotoURL = currentItem.foto;
+        }
+      }
+
+      if (fotoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          fotoURL = e.target.result;
+          simpanDokumen();
+        };
+        reader.readAsDataURL(fotoInput.files[0]);
+      } else {
+        simpanDokumen();
+      }
+
+      function simpanDokumen() {
+        if (dokumenInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            dokumenURL = e.target.result;
+            simpanKeData();
+          };
+          reader.readAsDataURL(dokumenInput.files[0]);
+        } else {
+          simpanKeData();
+        }
+      }
+
+      function simpanKeData() {
+        const item = { nama, nik, alamat, mulai, pendidikan, kontrak, jabatan, status, foto: fotoURL, dokumen: dokumenURL };
+        if (editId !== "" && editId < data.length) {
+          data[editId] = item;
+          showToast("Data diperbarui.");
+        } else {
+          data.push(item);
+          showToast("Karyawan ditambahkan.");
+        }
+        simpanData(data);
+        clearForm();
+        muatData();
+      }
+    }
+
+    function editKaryawan(index) {
+      const data = JSON.parse(localStorage.getItem('karyawanData')) || [];
+      const item = data[index];
+      if (!item) return;
+
+      document.getElementById('editId').value = index;
+      setVal('nama', item.nama);
+      setVal('nik', item.nik);
+      setVal('alamat', item.alamat);
+      setVal('mulai', item.mulai);
+      setVal('pendidikan', item.pendidikan);
+      setVal('kontrak', item.kontrak);
+      setVal('jabatan', item.jabatan);
+      setVal('status', item.status);
+
+      const preview = document.getElementById('photoPreview');
+      preview.style.backgroundImage = item.foto ? `url(${item.foto})` : '';
+
+      setVal('dokumen', item.dokumen || '');
+      document.getElementById('fileName').innerHTML = item.dokumen ? '<small>File kontrak sudah ada</small>' : '';
+
+      document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Karyawan';
+    }
+
+    function hapusKaryawan(index) {
+      if (confirm("Hapus karyawan ini?")) {
+        const data = JSON.parse(localStorage.getItem('karyawanData')) || [];
+        data.splice(index, 1);
+        simpanData(data);
+        muatData();
+        showToast("Karyawan dihapus.");
+      }
+    }
+
+    function searchKaryawan() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      if (!query) {
+        muatData();
+        return;
+      }
+      const filtered = allData.filter(item =>
+        item.nama.toLowerCase().includes(query) ||
+        item.nik.includes(query) ||
+        (item.alamat && item.alamat.toLowerCase().includes(query)) ||
+        (item.jabatan && item.jabatan.toLowerCase().includes(query)) ||
+        (item.pendidikan && item.pendidikan.toLowerCase().includes(query)) ||
+        (item.status && item.status.toLowerCase().includes(query))
+      );
+      renderFiltered(filtered);
+    }
+
+    function renderFiltered(data) {
+      const tbody = document.getElementById('karyawanTable').getElementsByTagName('tbody')[0];
+      tbody.innerHTML = '';
+      data.forEach((item, index) => {
+        const row = tbody.insertRow();
+
+        const img = document.createElement('img');
+        img.src = item.foto || 'https://via.placeholder.com/40';
+        img.width = 40;
+        img.height = 40;
+        img.style.borderRadius = '50%';
+        img.style.objectFit = 'cover';
+        const fotoCell = row.insertCell();
+        fotoCell.appendChild(img);
+
+        row.insertCell().textContent = item.nama;
+        row.insertCell().textContent = item.nik;
+        row.insertCell().textContent = item.alamat || '-';
+        row.insertCell().textContent = formatTanggal(item.mulai);
+        row.insertCell().textContent = item.pendidikan || '-';
+        row.insertCell().textContent = `${item.kontrak} Tahun`;
+        row.insertCell().textContent = item.jabatan;
+
+        const statusCell = row.insertCell();
+        const span = document.createElement('span');
+        span.textContent = item.status;
+        span.style.padding = '4px 8px';
+        span.style.borderRadius = '4px';
+        span.style.fontSize = '0.8rem';
+        span.style.color = 'white';
+        span.style.backgroundColor =
+          item.status === 'Aktif' ? '#4CAF50' :
+          item.status === 'Resign' ? '#f44336' :
+          item.status === 'Non Aktif' ? '#FF9800' : '#999';
+        statusCell.appendChild(span);
+
+        const qrCell = row.insertCell();
+        const qrDiv = document.createElement('div');
+        qrDiv.className = 'qrcode-container';
+        qrDiv.style.width = '80px';
+        qrDiv.style.height = '80px';
+        qrCell.appendChild(qrDiv);
+        new QRCode(qrDiv, {
+          text: JSON.stringify({ nama: item.nama, nik: item.nik, jabatan: item.jabatan, status: item.status }),
+          width: 80,
+          height: 80
+        });
+
+        const dokumenCell = row.insertCell();
+        if (item.dokumen) {
+          const link = document.createElement('a');
+          link.href = item.dokumen;
+          link.download = `kontrak-${item.nik}.pdf`;
+          link.innerHTML = '📥';
+          link.style.color = '#2196F3';
+          dokumenCell.appendChild(link);
+        } else {
+          dokumenCell.textContent = '-';
+        }
+
+        const actionCell = row.insertCell();
+        const editBtn = document.createElement('button');
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+        editBtn.onclick = () => editKaryawan(allData.indexOf(item));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Hapus';
+        deleteBtn.onclick = () => hapusKaryawan(allData.indexOf(item));
+
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'action-buttons';
+        actionDiv.style.display = 'flex';
+        actionDiv.style.gap = '8px';
+        actionDiv.style.justifyContent = 'center';
+        actionDiv.appendChild(editBtn);
+        actionDiv.appendChild(deleteBtn);
+        actionCell.appendChild(actionCell);
+      });
+    }
+
+    let chart = null;
+    function renderChart() {
+      const ctx = document.getElementById('statsChart').getContext('2d');
+      if (chart) chart.destroy();
+
+      const wilayah = {};
+      allData.forEach(item => {
+        wilayah[item.alamat] = (wilayah[item.alamat] || 0) + 1;
+      });
+
+      chart = new Chart(ctx, {
+        type: 'bar',
+         {
+          labels: Object.keys(wilayah).length > 0 ? Object.keys(wilayah) : ['Tidak Ada'],
+          datasets: [{
+            label: 'Jumlah Karyawan',
+             Object.keys(wilayah).length > 0 ? Object.values(wilayah) : [0],
+            backgroundColor: '#4CAF50'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Jumlah Karyawan per Wilayah' }
+          }
+        }
+      });
+    }
+
+    function clearForm() {
+      document.getElementById('editId').value = '';
+      document.querySelectorAll('input[type="text"], input[type="date"], select').forEach(inp => {
+        if (inp.id !== 'dokumenKontrak') inp.value = '';
+      });
+      document.getElementById('foto').value = '';
+      document.getElementById('dokumenKontrak').value = '';
+      document.getElementById('photoPreview').style.backgroundImage = '';
+      document.getElementById('dokumen').value = '';
+      document.getElementById('fileName').innerHTML = '';
+      document.getElementById('formTitle').innerHTML = '<i class="fas fa-user-plus"></i> Tambah Karyawan';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function cetakData() {
+      const printWindow = window.open('', '_blank');
+      const data = JSON.parse(localStorage.getItem('karyawanData')) || [];
+      let rows = '';
+      data.forEach(item => {
+        rows += `
+          <tr>
+            <td><img src="${item.foto || 'https://via.placeholder.com/40'}" width="30" style="border-radius:50%"></td>
+            <td>${item.nama}</td>
+            <td>${item.nik}</td>
+            <td>${item.alamat}</td>
+            <td>${formatTanggal(item.mulai)}</td>
+            <td>${item.pendidikan || '-'}</td>
+            <td>${item.kontrak} Tahun</td>
+            <td>${item.jabatan}</td>
+            <td>${item.status}</td>
+          </tr>`;
+      });
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Cetak Data Karyawan</title>
+          <style>
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+            th { background: #4CAF50; color: white; }
+            img { vertical-align: middle; }
+            body { font-family: Arial, sans-serif; }
+          </style>
+        </head>
+        <body>
+          <h2>Data Karyawan - Karyawan Lampung</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>Nama</th>
+                <th>NIK</th>
+                <th>Alamat</th>
+                <th>Mulai</th>
+                <th>Pendidikan</th>
+                <th>Kontrak</th>
+                <th>Jabatan</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    function exportToExcel() {
+      const data = JSON.parse(localStorage.getItem('karyawanData')) || [];
+      const exportData = data.map(item => ({
+        'Nama': item.nama,
+        'NIK': item.nik,
+        'Alamat': item.alamat,
+        'Mulai Kerja': formatTanggal(item.mulai),
+        'Pendidikan': item.pendidikan || '-',
+        'Kontrak (Tahun)': item.kontrak,
+        'Jabatan': item.jabatan,
+        'Status': item.status
+      }));
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Karyawan");
+      XLSX.writeFile(wb, `Data-Karyawan-${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.xlsx`);
+    }
+  </script>
+</body>
+</html>
