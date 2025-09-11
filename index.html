@@ -1,229 +1,407 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard Karyawan</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    :root { --primary:#4CAF50; --secondary:#2196F3; --danger:#f44336; --light:#f4f4f4; --white:#fff; }
-    body { font-family: Roboto, sans-serif; background: var(--light); margin:0; padding:20px; color:#333; }
-    .login-form, .card { background: var(--white); padding:20px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.1); margin-bottom:20px; }
-    .login-form { max-width:480px; margin:60px auto; text-align:center; }
-    input,select { width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:6px; }
-    button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
-    .btn-primary { background:var(--primary); color:#fff; }
-    .btn-secondary { background:var(--secondary); color:#fff; }
-    .btn-danger { background:var(--danger); color:#fff; }
-    header.app-header { background:var(--primary); color:#fff; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th,td { border:1px solid #ddd; padding:8px; text-align:center; }
-    th { background:var(--primary); color:#fff; }
-    .action-buttons { display:flex; gap:8px; justify-content:center; }
-    .preview-img { max-width:60px; max-height:60px; border-radius:6px; }
-    .error-msg { color: red; font-size: 0.9em; margin-top: 6px; }
+    :root{--primary:#4CAF50;--secondary:#2196F3;--danger:#f44336;--light:#f4f4f4;--white:#fff}
+    *{box-sizing:border-box}
+    body{font-family:Roboto,Arial,sans-serif;background:var(--light);color:#222;margin:0;padding:18px}
+    .login-form,.card{background:var(--white);padding:16px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.06);margin-bottom:18px}
+    .login-form{max-width:560px;margin:48px auto;text-align:center}
+    input,select,button{font-size:14px}
+    input,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ddd;border-radius:6px}
+    button{padding:8px 12px;border-radius:6px;border:0;cursor:pointer}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-secondary{background:var(--secondary);color:#fff}
+    .btn-danger{background:var(--danger);color:#fff}
+    header.app-header{background:var(--primary);color:#fff;padding:12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border:1px solid #e6e6e6;padding:8px;text-align:center}
+    th{background:var(--primary);color:#fff}
+    .action-buttons{display:flex;gap:8px;justify-content:center}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:720px){.grid-2{grid-template-columns:1fr}}
+    .small{font-size:0.9rem;color:#666}
+    .file-name{font-size:0.9rem;color:#444;margin-top:6px}
   </style>
 </head>
 <body>
+  <!-- LOGIN -->
   <div id="loginScreen" class="login-form">
     <h2><i class="fas fa-user-lock"></i> Login Sistem</h2>
-    <p>Pilih peran: User/Operator (input saja) atau Admin (edit & hapus)</p>
+    <p class="small">Pilih peran: User/Operator (input saja) atau Admin (edit & hapus)</p>
     <select id="role">
       <option value="user">User / Operator</option>
       <option value="admin">Admin</option>
     </select>
-    <input id="username" type="text" placeholder="Username">
+    <input id="username" type="text" placeholder="Username (admin/user)">
     <input id="password" type="password" placeholder="Password">
-    <button id="loginBtn" class="btn-primary">Masuk</button>
-    <div id="loginError" class="error-msg"></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+      <button id="loginBtn" class="btn-primary">Masuk</button>
+    </div>
   </div>
 
+  <!-- APP -->
   <div id="mainApp" style="display:none;">
     <header class="app-header">
-      <h3><i class="fas fa-building"></i> Dashboard Karyawan</h3>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <div id="roleLabel"></div>
+      <div><h3 style="margin:0"><i class="fas fa-building"></i> Dashboard Karyawan</h3></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="roleLabel" class="small"></div>
         <button id="logoutBtn" class="btn-danger">Keluar</button>
       </div>
     </header>
 
     <div class="card">
-      <h3 id="formTitle">Tambah Karyawan</h3>
-      <input type="hidden" id="editId">
-      <input type="text" id="nama" placeholder="Nama Lengkap">
-      <input type="text" id="nik" placeholder="NIK (16 digit)" maxlength="16">
-      <input type="text" id="telepon" placeholder="Nomor Telepon (maks 13 digit)" maxlength="13">
-      <select id="alamat">
-        <option value="">Pilih Wilayah</option>
-        <option value="Bandar Lampung">Bandar Lampung</option>
-        <option value="Metro">Metro</option>
-        <option value="Lampung Selatan">Lampung Selatan</option>
-        <option value="Lampung Tengah">Lampung Tengah</option>
-        <option value="Lampung Utara">Lampung Utara</option>
-        <option value="Way Kanan">Way Kanan</option>
-        <option value="Tulang Bawang">Tulang Bawang</option>
-        <option value="Tulang Bawang Barat">Tulang Bawang Barat</option>
-        <option value="Mesuji">Mesuji</option>
-        <option value="Pesawaran">Pesawaran</option>
-        <option value="Pringsewu">Pringsewu</option>
-        <option value="Tanggamus">Tanggamus</option>
-        <option value="Pesisir Barat">Pesisir Barat</option>
-        <option value="Lampung Barat">Lampung Barat</option>
-        <option value="Lampung Timur">Lampung Timur</option>
-      </select>
-      <input type="date" id="mulai">
-      <select id="pendidikan">
-        <option value="">Pilih Pendidikan</option>
-        <option value="SMA/SMK/MA">SMA/SMK/MA</option>
-        <option value="Sarjana">Sarjana</option>
-        <option value="Magister">Magister</option>
-        <option value="Doktor">Doktor</option>
-        <option value="Profesor">Profesor</option>
-      </select>
-      <select id="jabatan">
-        <option value="">Pilih Jabatan</option>
-        <option value="Direktur">Direktur</option>
-        <option value="Manajer">Manajer</option>
-        <option value="Teller">Teller</option>
-        <option value="Accounting">Accounting</option>
-        <option value="Account Officer">Account Officer</option>
-        <option value="Customer Service">Customer Service</option>
-        <option value="Marketing">Marketing</option>
-      </select>
-      <select id="status">
-        <option value="">Pilih Status</option>
-        <option value="Aktif">Aktif</option>
-        <option value="Non Aktif">Non Aktif</option>
-        <option value="Nonjob">Nonjob</option>
-        <option value="Resign">Resign</option>
-        <option value="Lainnya">Lainnya</option>
-      </select>
-      <label>Upload File:</label>
-      <input type="file" id="fileUpload">
-      <label>Upload Foto:</label>
-      <input type="file" id="imgUpload" accept="image/*">
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+      <h4 id="formTitle">Tambah Karyawan</h4>
+      <input type="hidden" id="editId" value="">
+
+      <div class="grid-2">
+        <input id="nama" type="text" placeholder="Nama Lengkap">
+        <input id="nik" type="text" placeholder="NIK (16 digit)" maxlength="16">
+        <select id="alamat">
+          <option value="">Pilih Wilayah</option>
+          <option value="Bandar Lampung">Bandar Lampung</option>
+          <option value="Metro">Metro</option>
+          <option value="Lampung Selatan">Lampung Selatan</option>
+          <option value="Lampung Tengah">Lampung Tengah</option>
+          <option value="Lampung Utara">Lampung Utara</option>
+          <option value="Way Kanan">Way Kanan</option>
+          <option value="Tulang Bawang">Tulang Bawang</option>
+          <option value="Tulang Bawang Barat">Tulang Bawang Barat</option>
+          <option value="Mesuji">Mesuji</option>
+          <option value="Pesawaran">Pesawaran</option>
+          <option value="Pringsewu">Pringsewu</option>
+          <option value="Tanggamus">Tanggamus</option>
+          <option value="Pesisir Barat">Pesisir Barat</option>
+          <option value="Lampung Barat">Lampung Barat</option>
+          <option value="Lampung Timur">Lampung Timur</option>
+        </select>
+        <input id="telepon" type="text" placeholder="Nomor Telepon (maks 13 digit)" maxlength="13">
+      </div>
+
+      <div class="grid-2" style="margin-top:8px;">
+        <input id="mulai" type="date">
+        <select id="pendidikan">
+          <option value="">Pilih Pendidikan</option>
+          <option value="SMA/SMK/MA">SMA/SMK/MA</option>
+          <option value="Sarjana">Sarjana</option>
+          <option value="Magister">Magister</option>
+          <option value="Doktor">Doktor</option>
+          <option value="Profesor">Profesor</option>
+        </select>
+      </div>
+
+      <div class="grid-2" style="margin-top:8px;">
+        <select id="jabatan">
+          <option value="">Pilih Jabatan</option>
+          <option value="Direktur">Direktur</option>
+          <option value="Manajer">Manajer</option>
+          <option value="Teller">Teller</option>
+          <option value="Accounting">Accounting</option>
+          <option value="Account Officer">Account Officer</option>
+          <option value="Customer Service">Customer Service</option>
+          <option value="Marketing">Marketing</option>
+        </select>
+        <select id="status">
+          <option value="">Pilih Status</option>
+          <option value="Aktif">Aktif</option>
+          <option value="Non Aktif">Non Aktif</option>
+          <option value="Nonjob">Nonjob</option>
+          <option value="Resign">Resign</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+
+      <div style="margin-top:8px;">
+        <label for="fileUpload">Upload File (kontrak/dokumen):</label>
+        <input id="fileUpload" type="file" accept=".pdf,.doc,.docx,image/*">
+        <div id="fileHint" class="file-name"></div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;">
         <button id="clearBtn" class="btn-secondary">Clear</button>
         <button id="saveBtn" class="btn-primary">Simpan</button>
       </div>
     </div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
         <input id="searchInput" type="text" placeholder="Cari karyawan...">
-        <div>
+        <div class="flex-right">
+          <button id="sampleBtn" class="btn-secondary" title="Isi data contoh">Isi Contoh</button>
           <button id="printBtn" class="btn-secondary">Cetak PDF</button>
           <button id="exportBtn" class="btn-primary">Export Excel</button>
         </div>
       </div>
+
       <table id="karyawanTable">
-        <thead><tr>
-          <th>Nama</th><th>NIK</th><th>Alamat</th><th>Telepon</th><th>Pendidikan</th><th>Jabatan</th><th>Status</th><th>File</th><th>Foto</th><th>Aksi</th>
-        </tr></thead>
+        <thead>
+          <tr>
+            <th>Nama</th><th>NIK</th><th>Alamat</th><th>Telepon</th><th>Pendidikan</th><th>Jabatan</th><th>Status</th><th>File</th><th>Aksi</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
 
     <div class="card">
-      <h3>Statistik Karyawan per Wilayah</h3>
+      <h4>Statistik Karyawan per Wilayah</h4>
       <canvas id="statsChart" height="100"></canvas>
     </div>
   </div>
 
   <script>
-    const ADMIN_USER = "admin", ADMIN_PASS = "admin123";
-    const USER_USER = "user", USER_PASS = "user123";
+    // ---------- CONFIG ----------
+    const ADMIN_USER = 'admin', ADMIN_PASS = 'admin123';
+    const USER_USER = 'user', USER_PASS = 'user123';
 
-    let currentRole = "";
+    // Supabase (replace to enable)
+    const SUPABASE_URL = 'https://your-project.supabase.co';
+    const SUPABASE_KEY = 'your-service-role-key';
+    const SUPABASE_TABLE = 'karyawan';
+    const SUPABASE_HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
+
+    // ---------- STATE ----------
+    let currentRole = '';
     let allData = [];
     let chart = null;
 
-    function login() {
-      const role = document.getElementById('role').value;
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value.trim();
-      const err = document.getElementById('loginError');
-      err.textContent = "";
+    // helper
+    function escapeHtml(s){ if (s===undefined||s===null) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-      if (role === 'admin' && u.toLowerCase()===ADMIN_USER && p===ADMIN_PASS) {
-        currentRole='admin';
-      } else if (role==='user' && u.toLowerCase()===USER_USER && p===USER_PASS) {
-        currentRole='user';
-      } else {
-        err.textContent = 'Login gagal! Username atau password salah.';
-        return;
-      }
+    // ----- login / logout -----
+    function login(){
+      const role = (document.getElementById('role')||{}).value;
+      const u = (document.getElementById('username')||{}).value||'';
+      const p = (document.getElementById('password')||{}).value||'';
+      if(role==='admin' && u===ADMIN_USER && p===ADMIN_PASS) currentRole='admin';
+      else if(role==='user' && u===USER_USER && p===USER_PASS) currentRole='user';
+      else { alert('Login gagal!'); return; }
 
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('mainApp').style.display='block';
       document.getElementById('roleLabel').textContent = 'Peran: ' + currentRole.toUpperCase();
-      loadLocalData();
-      renderAll();
+
+      restoreFromSupabase().then(()=>{ loadLocalData(); renderAll(); });
     }
 
-    function logout() { location.reload(); }
-    function loadLocalData(){ allData = JSON.parse(localStorage.getItem('karyawanData'))||[]; }
+    function logout(){ location.reload(); }
+
+    // ----- local storage -----
+    function loadLocalData(){ try{ allData = JSON.parse(localStorage.getItem('karyawanData'))||[]; }catch(e){ allData=[]; } }
     function saveLocalData(){ localStorage.setItem('karyawanData', JSON.stringify(allData)); }
 
+    // ----- Supabase backup/restore (simple) -----
+    async function backupKeSupabase(data){
+      if(!SUPABASE_URL||!SUPABASE_KEY||SUPABASE_KEY==='your-service-role-key') return;
+      if(!navigator.onLine) { console.warn('Offline - skip backup'); return; }
+      try{
+        // full replace (use with caution)
+        await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, { method:'DELETE', headers:SUPABASE_HEADERS });
+        if(data && data.length){
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, { method:'POST', headers:SUPABASE_HEADERS, body:JSON.stringify(data) });
+          if(!res.ok) console.warn('Backup response not ok', await res.text());
+        }
+      }catch(err){ console.error('Backup error', err); }
+    }
+
+    async function restoreFromSupabase(){
+      if(!SUPABASE_URL||!SUPABASE_KEY||SUPABASE_KEY==='your-service-role-key') return;
+      if(!navigator.onLine) { console.warn('Offline - skip restore'); return; }
+      try{
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*`, { headers: SUPABASE_HEADERS });
+        if(!res.ok) return;
+        const data = await res.json();
+        if(Array.isArray(data) && data.length){
+          if(confirm('Data cloud ditemukan. Ganti data lokal dengan data dari Supabase?')){
+            allData = data.map(d => ({
+              nama: d.nama||'', nik: d.nik||'', alamat: d.alamat||'', telepon: d.telepon||'',
+              mulai: d.mulai||'', pendidikan: d.pendidikan||'', jabatan: d.jabatan||'', status: d.status||'',
+              fileName: d.fileName||'', fileData: d.fileData||''
+            }));
+            saveLocalData();
+          }
+        }
+      }catch(err){ console.error('Restore error', err); }
+    }
+
+    // ----- CRUD -----
     function simpanKaryawan(){
-      const nama=document.getElementById('nama').value.trim();
-      const nik=document.getElementById('nik').value.trim();
-      const alamat=document.getElementById('alamat').value;
-      const telepon=document.getElementById('telepon').value.trim();
-      const mulai=document.getElementById('mulai').value;
-      const pendidikan=document.getElementById('pendidikan').value;
-      const jabatan=document.getElementById('jabatan').value;
-      const status=document.getElementById('status').value;
-      const f=document.getElementById('fileUpload');
-      const img=document.getElementById('imgUpload');
-      const fileName=f.files.length?f.files[0].name:'';
-      const imgFile=img.files.length?URL.createObjectURL(img.files[0]):'';
-      const editId=document.getElementById('editId').value;
-      if(!nama||!nik){alert('Nama dan NIK wajib diisi');return;}
-      if(!/^[0-9]{16}$/.test(nik)){alert('NIK harus 16 digit');return;}
-      if(telepon&&(!/^[0-9]+$/.test(telepon)||telepon.length>13)){alert('Telepon maksimal 13 digit');return;}
-      const item={nama,nik,alamat,telepon,mulai,pendidikan,jabatan,status,fileName,imgFile};
-      if(editId!==''){const i=parseInt(editId,10);if(!isNaN(i)){allData[i]=item;}} else allData.push(item);
-      saveLocalData(); clearForm(); renderAll();
-    }
+      const nama = (document.getElementById('nama')||{}).value||'';
+      const nik = (document.getElementById('nik')||{}).value||'';
+      const alamat = (document.getElementById('alamat')||{}).value||'';
+      const telepon = (document.getElementById('telepon')||{}).value||'';
+      const mulai = (document.getElementById('mulai')||{}).value||'';
+      const pendidikan = (document.getElementById('pendidikan')||{}).value||'';
+      const jabatan = (document.getElementById('jabatan')||{}).value||'';
+      const status = (document.getElementById('status')||{}).value||'';
+      const fileInput = document.getElementById('fileUpload');
+      const editId = (document.getElementById('editId')||{}).value||'';
 
-    function clearForm(){ ['nama','nik','alamat','telepon','mulai','pendidikan','jabatan','status','fileUpload','imgUpload','editId'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';}); document.getElementById('formTitle').textContent='Tambah Karyawan'; }
+      if(!nama || !nik){ alert('Nama dan NIK wajib diisi'); return; }
+      if(!/^[0-9]{16}$/.test(nik)){ alert('NIK harus 16 digit angka'); return; }
+      if(telepon && (!/^[0-9]+$/.test(telepon) || telepon.length > 13)){ alert('Nomor telepon maksimal 13 digit angka'); return; }
 
-    function renderAll(){ renderRows(allData); renderChart(); }
-    function renderRows(list){
-      const tbody=document.querySelector('#karyawanTable tbody'); tbody.innerHTML='';
-      list.forEach((it,i)=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${it.nama}</td><td>${it.nik}</td><td>${it.alamat||'-'}</td><td>${it.telepon||'-'}</td><td>${it.pendidikan||'-'}</td><td>${it.jabatan||'-'}</td><td>${it.status||'-'}</td><td>${it.fileName||'-'}</td><td>${it.imgFile?`<img src="${it.imgFile}" class='preview-img'/>`:'-'}</td>`;
-        const td=document.createElement('td');
-        if(currentRole==='admin'){
-          const wrap=document.createElement('div');wrap.className='action-buttons';
-          const b1=document.createElement('button');b1.textContent='Edit';b1.className='btn-secondary'; b1.onclick=()=>editKaryawan(i);
-          const b2=document.createElement('button');b2.textContent='Hapus';b2.className='btn-danger'; b2.onclick=()=>hapusKaryawan(i);
-          wrap.appendChild(b1);wrap.appendChild(b2);td.appendChild(wrap);
-        } else td.textContent='-';
-        tr.appendChild(td); tbody.appendChild(tr);
-      });
-    }
-
-    function hapusKaryawan(i){
-      if(i<0||i>=allData.length)return;
-      if(confirm('Hapus data ini?')){
-        allData.splice(i,1);
-        saveLocalData();
-        renderAll();
+      if(fileInput && fileInput.files && fileInput.files[0]){
+        const f = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e){
+          const fileData = e.target.result; // data URL
+          const item = { nama, nik, alamat, telepon, mulai, pendidikan, jabatan, status, fileName: f.name, fileData };
+          upsertItem(editId, item);
+        };
+        reader.readAsDataURL(f);
+      } else {
+        const item = { nama, nik, alamat, telepon, mulai, pendidikan, jabatan, status, fileName: '', fileData: '' };
+        upsertItem(editId, item);
       }
     }
 
-    function editKaryawan(i){ if(i<0||i>=allData.length) return; const x=allData[i]; document.getElementById('editId').value=i; document.getElementById('nama').value=x.nama||''; document.getElementById('nik').value=x.nik||''; document.getElementById('alamat').value=x.alamat||''; document.getElementById('telepon').value=x.telepon||''; document.getElementById('mulai').value=x.mulai||''; document.getElementById('pendidikan').value=x.pendidikan||''; document.getElementById('jabatan').value=x.jabatan||''; document.getElementById('status').value=x.status||''; document.getElementById('formTitle').textContent='Edit Karyawan'; }
+    function upsertItem(editId, item){
+      if(editId !== ''){
+        const idx = parseInt(editId,10);
+        if(!isNaN(idx) && idx>=0 && idx<allData.length){ allData[idx] = item; }
+      } else { allData.push(item); }
+      saveLocalData();
+      backupKeSupabase(allData);
+      clearForm();
+      renderAll();
+    }
 
-    function searchKaryawan(){ const q=document.getElementById('searchInput').value.toLowerCase(); const f=allData.filter(r=> (r.nama||'').toLowerCase().includes(q)||(r.nik||'').includes(q)||(r.alamat||'').toLowerCase().includes(q)||(r.telepon||'').includes(q)||(r.jabatan||'').toLowerCase().includes(q)); renderRows(f); renderChart(f); }
+    function renderAll(){ renderRows(allData); renderChart(); }
 
-    function renderChart(src){ const list=Array.isArray(src)?src:allData; const c={}; list.forEach(r=>{const k=r.alamat||'Tidak Ada';c[k]=(c[k]||0)+1}); const labels=Object.keys(c).length?Object.keys(c):['Tidak Ada']; const values=Object.values(c).length?Object.values(c):[0]; const ctx=document.getElementById('statsChart').getContext('2d'); if(chart) chart.destroy(); chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Jumlah Karyawan',data:values,backgroundColor:'#4CAF50'}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}}); }
+    function renderRows(list){
+      const tbody = document.querySelector('#karyawanTable tbody'); tbody.innerHTML = '';
+      list.forEach((it, idx) => {
+        const tr = document.createElement('tr');
+        tr.appendChild(cell(it.nama||'-'));
+        tr.appendChild(cell(it.nik||'-'));
+        tr.appendChild(cell(it.alamat||'-'));
+        tr.appendChild(cell(it.telepon||'-'));
+        tr.appendChild(cell(it.pendidikan||'-'));
+        tr.appendChild(cell(it.jabatan||'-'));
+        tr.appendChild(cell(it.status||'-'));
 
-    function cetakData(){ const d=allData||[]; let rows=''; d.forEach(it=>{rows+=`<tr><td>${it.nama}</td><td>${it.nik}</td><td>${it.alamat}</td><td>${it.telepon}</td><td>${it.pendidikan}</td><td>${it.jabatan}</td><td>${it.status}</td></tr>`;}); const html=`<!doctype html><html><head><meta charset='utf-8'><title>Cetak</title><style>table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px;text-align:center}th{background:#4CAF50;color:#fff}</style></head><body><h2>Data Karyawan</h2><table><thead><tr><th>Nama</th><th>NIK</th><th>Alamat</th><th>Telepon</th><th>Pendidikan</th><th>Jabatan</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`; const url='data:text/html;charset=utf-8,'+encodeURIComponent(html); const w=window.open(url,'_blank'); if(w)w.onload=()=>w.print(); }
+        const fileTd = document.createElement('td');
+        if(it.fileName && it.fileData){
+          const a = document.createElement('a'); a.href = it.fileData; a.download = it.fileName; a.textContent = 'Download'; a.style.textDecoration = 'none';
+          fileTd.appendChild(a);
+        } else if(it.fileName) fileTd.textContent = it.fileName;
+        else fileTd.textContent = '-';
+        tr.appendChild(fileTd);
 
-    function exportToExcel(){ const data=(allData||[]).map(it=>({Nama:it.nama,NIK:it.nik,Alamat:it.alamat,Telepon:it.telepon,Pendidikan:it.pendidikan,Jabatan:it.jabatan,Status:it.status})); const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Karyawan'); XLSX.writeFile(wb,'Data-Karyawan
+        const actionTd = document.createElement('td');
+        if(currentRole === 'admin'){
+          const wrap = document.createElement('div'); wrap.className = 'action-buttons';
+          const editBtn = document.createElement('button'); editBtn.className = 'btn-secondary'; editBtn.textContent = 'Edit'; editBtn.onclick = () => editKaryawan(idx);
+          const delBtn = document.createElement('button'); delBtn.className = 'btn-danger'; delBtn.textContent = 'Hapus';
+          delBtn.onclick = () => { if(confirm('Hapus karyawan ini?')){ allData.splice(idx, 1); saveLocalData(); backupKeSupabase(allData); renderAll(); } };
+          wrap.appendChild(editBtn); wrap.appendChild(delBtn); actionTd.appendChild(wrap);
+        } else { actionTd.textContent = '-'; }
+        tr.appendChild(actionTd);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function cell(txt){ const td = document.createElement('td'); td.textContent = txt; return td; }
+
+    function editKaryawan(i){
+      if(typeof i !== 'number' || i<0 || i>=allData.length) return;
+      const r = allData[i] || {};
+      document.getElementById('editId').value = i.toString();
+      document.getElementById('nama').value = r.nama || '';
+      document.getElementById('nik').value = r.nik || '';
+      document.getElementById('alamat').value = r.alamat || '';
+      document.getElementById('telepon').value = r.telepon || '';
+      document.getElementById('mulai').value = r.mulai || '';
+      document.getElementById('pendidikan').value = r.pendidikan || '';
+      document.getElementById('jabatan').value = r.jabatan || '';
+      document.getElementById('status').value = r.status || '';
+      document.getElementById('fileHint').textContent = r.fileName ? `File terpasang: ${r.fileName}` : 'Tidak ada file terpasang';
+      document.getElementById('formTitle').textContent = 'Edit Karyawan';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function clearForm(){
+      document.getElementById('editId').value = '';
+      ['nama','nik','alamat','telepon','mulai','pendidikan','jabatan','status'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+      const f = document.getElementById('fileUpload'); if(f) f.value = '';
+      document.getElementById('fileHint').textContent = '';
+      document.getElementById('formTitle').textContent = 'Tambah Karyawan';
+    }
+
+    function searchKaryawan(){
+      const q = (document.getElementById('searchInput')||{}).value||'';
+      const term = q.trim().toLowerCase();
+      if(!term){ renderRows(allData); renderChart(); return; }
+      const filtered = allData.filter(r=> (r.nama||'').toLowerCase().includes(term) || (r.nik||'').includes(term) || (r.alamat||'').toLowerCase().includes(term) || (r.telepon||'').includes(term) || (r.jabatan||'').toLowerCase().includes(term));
+      renderRows(filtered); renderChart(filtered);
+    }
+
+    function renderChart(sourceList){
+      const list = Array.isArray(sourceList) ? sourceList : allData;
+      const counts = {};
+      list.forEach(it => { const k = it.alamat || 'Tidak Ada'; counts[k] = (counts[k]||0)+1; });
+      const labels = Object.keys(counts).length ? Object.keys(counts) : ['Tidak Ada'];
+      const values = Object.keys(counts).length ? Object.values(counts) : [0];
+      const ctx = document.getElementById('statsChart').getContext('2d');
+      if(chart) chart.destroy();
+      chart = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Jumlah Karyawan', data: values, backgroundColor: '#4CAF50' }] }, options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } } });
+    }
+
+    function cetakData(){
+      const data = allData || [];
+      let rows = '';
+      data.forEach(it => {
+        rows += '<tr>' + '<td>' + escapeHtml(it.nama||'-') + '</td>' + '<td>' + escapeHtml(it.nik||'-') + '</td>' + '<td>' + escapeHtml(it.alamat||'-') + '</td>' + '<td>' + escapeHtml(it.telepon||'-') + '</td>' + '<td>' + escapeHtml(it.pendidikan||'-') + '</td>' + '<td>' + escapeHtml(it.jabatan||'-') + '</td>' + '<td>' + escapeHtml(it.status||'-') + '</td>' + '</tr>';
+      });
+      const html = '<!doctype html><html><head><meta charset=\"utf-8\"><title>Cetak Data Karyawan</title><style>table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px;text-align:center}th{background:#4CAF50;color:#fff}</style></head><body><h2>Data Karyawan</h2><table><thead><tr><th>Nama</th><th>NIK</th><th>Alamat</th><th>Telepon</th><th>Pendidikan</th><th>Jabatan</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></body></html>';
+      const url = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+      const w = window.open(url, '_blank');
+      if(w) w.onload = function(){ try{ w.print(); }catch(e){} };
+      else alert('Pop-up diblokir. Izinkan pop-up untuk mencetak.');
+    }
+
+    function exportToExcel(){
+      const data = (allData||[]).map(it => ({ Nama: it.nama, NIK: it.nik, Alamat: it.alamat, Telepon: it.telepon, Pendidikan: it.pendidikan, Jabatan: it.jabatan, Status: it.status }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Karyawan');
+      XLSX.writeFile(wb, 'Data-Karyawan-' + new Date().toLocaleDateString('id-ID').replace(/\//g,'-') + '.xlsx');
+    }
+
+    // sample test cases
+    function seedSampleData(){
+      const demo = [
+        { nama:'Agus Santoso', nik:'3201012001010001', alamat:'Bandar Lampung', telepon:'081234567890', pendidikan:'Sarjana', jabatan:'Teller', status:'Aktif', fileName:'', fileData:'' },
+        { nama:'Siti Aminah', nik:'3201012001020002', alamat:'Metro', telepon:'081298765432', pendidikan:'SMA/SMK/MA', jabatan:'Customer Service', status:'Non Aktif', fileName:'', fileData:'' },
+        { nama:'Budi Hartono', nik:'3201012001030003', alamat:'Lampung Tengah', telepon:'081212121212', pendidikan:'Magister', jabatan:'Manajer', status:'Resign', fileName:'', fileData:'' }
+      ];
+      allData = demo.concat(allData);
+      saveLocalData(); renderAll();
+    }
+
+    // init bindings
+    document.addEventListener('DOMContentLoaded', function(){
+      document.getElementById('loginBtn').addEventListener('click', login);
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      document.getElementById('saveBtn').addEventListener('click', simpanKaryawan);
+      document.getElementById('clearBtn').addEventListener('click', clearForm);
+      document.getElementById('searchInput').addEventListener('input', searchKaryawan);
+      document.getElementById('printBtn').addEventListener('click', cetakData);
+      document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+      document.getElementById('sampleBtn').addEventListener('click', seedSampleData);
+
+      try{ allData = JSON.parse(localStorage.getItem('karyawanData'))||[]; }catch(e){ allData = []; }
+      renderAll();
+    });
+  </script>
+</body>
+</html>
